@@ -345,8 +345,16 @@ function MapView({ q, answered, correct }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" aria-label="Karte">
-      {/* Hintergrund */}
-      <rect x={0} y={0} width={W} height={H} fill="#c5d9ec" />
+      {/* Hintergrund – Ozean */}
+      <rect x={0} y={0} width={W} height={H} fill="#9bbdd6" />
+
+      {/* Zielland – zuerst als deutlich sichtbare Fläche */}
+      {targetFeat && (
+        <path d={path(targetFeat)}
+          fill={accent} fillOpacity={0.32}
+          stroke={accent} strokeWidth={2.2} strokeLinejoin="round"
+        />
+      )}
 
       {/* Kontext-Nachbarn / Nachfolgestaaten */}
       {c.ctx.map(id => {
@@ -355,21 +363,13 @@ function MapView({ q, answered, correct }) {
         const isHi = q.kind === "country" && q.cid === id;
         return (
           <path key={id} d={path(f)}
-            fill={isHi ? okCol : "#dde8f0"}
-            fillOpacity={isHi ? 0.82 : 0.92}
-            stroke={isHi ? okCol : "#b2c8da"}
-            strokeWidth={isHi ? 1.8 : 0.7}
+            fill={isHi ? okCol : "#dce9f5"}
+            fillOpacity={isHi ? 0.88 : 1}
+            stroke={isHi ? okCol : "#9ab8d0"}
+            strokeWidth={isHi ? 2 : 0.8}
           />
         );
       })}
-
-      {/* Zielland */}
-      {targetFeat && (
-        <path d={path(targetFeat)}
-          fill={accent} fillOpacity={0.16}
-          stroke={accent} strokeWidth={1.8} strokeLinejoin="round"
-        />
-      )}
 
       {/* Faint Marker gleicher Kategorie */}
       {q.kind === "marker" && sameCat.filter(x => x.m && x.a !== q.a).map((x, i) => {
