@@ -50,10 +50,10 @@ const CONTENT = {
     {cat:"Gebirge", a:"Tian Shan", m:[80.0,42.0], hint:"Nordwesten", acc:["tianshan"]},
     {cat:"Wüste",   a:"Gobi",      m:[105.0,42.5], hint:"Norden"},
     {cat:"Wüste",   a:"Takla Makan", m:[82.0,39.0], hint:"Nordwesten", acc:["taklamakan"]},
-    {cat:"Naturraum", a:"Braunes China", m:[95,41],  hint:"Steppen/Wüsten – NW"},
-    {cat:"Naturraum", a:"Weißes China",  m:[88,32],  hint:"vergletscherte Hochgebirge – SW"},
-    {cat:"Naturraum", a:"Gelbes China",  m:[118,40], hint:"Ackerbau/fruchtbar – NO"},
-    {cat:"Naturraum", a:"Grünes China",  m:[113,25], hint:"subtropisch/Reis – SO"},
+    {cat:"Naturraum", a:"Braunes China", m:[95,41],  hint:"Steppen/Wüsten – NW",            desc:"Trocken- u. Steppenregion im Nordwesten"},
+    {cat:"Naturraum", a:"Weißes China",  m:[88,32],  hint:"vergletscherte Hochgebirge – SW", desc:"Vergletscherte Hochgebirge (Tibet, Himalaya)"},
+    {cat:"Naturraum", a:"Gelbes China",  m:[118,40], hint:"Ackerbau/fruchtbar – NO",         desc:"Fruchtbare Ackerbau- u. Lössebene im Nordosten"},
+    {cat:"Naturraum", a:"Grünes China",  m:[113,25], hint:"subtropisch/Reis – SO",            desc:"Subtropische Reisanbauregion im Südosten"},
     {cat:"Nachbarstaat", a:"Mongolei",     cid:"496"},
     {cat:"Nachbarstaat", a:"Russland",     cid:"643"},
     {cat:"Nachbarstaat", a:"Nordkorea",    cid:"408"},
@@ -84,19 +84,16 @@ const CONTENT = {
     {cat:"Stadt", a:"San Francisco",   m:[-122.42,37.77],hint:"Westen – Kalifornien", acc:["sf"]},
     {cat:"Stadt", a:"Seattle",         m:[-122.33,47.6], hint:"Westen – Washington"},
     {cat:"Stadt", a:"Denver",          m:[-104.99,39.74],hint:"Westen – Colorado"},
-    {cat:"Großlandschaft", a:"Küstenebene",       m:[-78,35],   hint:"Ostküste – flach"},
-    {cat:"Großlandschaft", a:"Zentrales Tiefland",m:[-92,40],   hint:"flach, fruchtbar"},
-    {cat:"Großlandschaft", a:"Appalachen",        m:[-81,37],   hint:"Osten – Gebirge"},
-    {cat:"Großlandschaft", a:"Great Plains",      m:[-100,41],  hint:"Prärie, westlich"},
-    {cat:"Großlandschaft", a:"Rocky Mountains",   m:[-106,39],  hint:"Westen – Hochgebirge", acc:["rockies","felsengebirge"]},
+    {cat:"Großlandschaft", a:"Küstenebene",       m:[-78,35],   hint:"Ostküste – flach",     desc:"Flaches Küstenland an der Ostküste"},
+    {cat:"Großlandschaft", a:"Zentrales Tiefland",m:[-92,40],   hint:"flach, fruchtbar",     desc:"Weites fruchtbares Flachland im Zentrum"},
+    {cat:"Großlandschaft", a:"Appalachen",        m:[-81,37],   hint:"Osten – Gebirge",      desc:"Altes Faltengebirge an der Ostküste"},
+    {cat:"Großlandschaft", a:"Great Plains",      m:[-100,41],  hint:"Prärie, westlich",     desc:"Weite Grasland-Prärie westlich des Mississippi"},
+    {cat:"Großlandschaft", a:"Rocky Mountains",   m:[-106,39],  hint:"Westen – Hochgebirge", acc:["rockies","felsengebirge"], desc:"Junges Hochgebirge im Westen (3000–4400 m)"},
     {cat:"See", a:"Great Lakes",     m:[-83,45],    hint:"5 Seen – Grenze Kanada", acc:["große seen","grosse seen"]},
     {cat:"See", a:"Great Salt Lake", m:[-112.5,41.1],hint:"Westen – Utah"},
     {cat:"See", a:"Lake Tahoe",      m:[-120.0,39.1],hint:"Sierra Nevada"},
     {cat:"Ozean", a:"Pazifischer Ozean",  m:[-124,36.5], hint:"Westen", acc:["pazifik"]},
     {cat:"Ozean", a:"Atlantischer Ozean", m:[-71.5,34],  hint:"Osten", acc:["atlantik"]},
-    {cat:"Fluss", a:"Mississippi River", line:[[-95.2,47.2],[-91,44],[-90.2,38.6],[-90,35],[-91,32],[-89.3,29]], hint:"von N nach S", acc:["mississippi"]},
-    {cat:"Fluss", a:"Missouri River",    line:[[-111.5,45.9],[-101.4,47.5],[-96,41.2],[-94.6,39.1],[-90.1,38.8]], hint:"Rockies → Great Plains → St. Louis", acc:["missouri"]},
-    {cat:"Fluss", a:"Hudson River",      line:[[-73.6,43.3],[-73.7,42.7],[-73.9,41.7],[-74.0,40.7]], hint:"New York", acc:["hudson"]},
     {cat:"Nachbarstaat", a:"Kanada", cid:"124"},
     {cat:"Nachbarstaat", a:"Mexiko", cid:"484"},
   ]},
@@ -327,17 +324,36 @@ function needsMC(q, diff) {
   return !q.typeable;
 }
 
+// ─── Fortschritt (localStorage) ──────────────────────────────────────────────
+const PROG_KEY = "gwk_v1";
+function loadProg() {
+  try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); }
+  catch { return {}; }
+}
+function qKey(q) {
+  return q.type === "fact"
+    ? `${q.country}_F_${q.sub}`
+    : `${q.country}_${q.cat}_${q.a}`;
+}
+
 // ─── MapView ──────────────────────────────────────────────────────────────────
 function MapView({ q, answered, correct }) {
   const c = COUNTRIES[q.country];
   const accent = c.color;
   const okCol = answered ? (correct ? "#16a34a" : "#dc2626") : accent;
 
-  const proj = useMemo(
-    () => fitMercator(c.fit),
+  const proj = useMemo(() => {
+    if (q.kind === "country" && q.cid && GEO[q.cid]) {
+      const b = d3.geoBounds({ type: "Feature", geometry: GEO[q.cid].geometry });
+      const [cw, cs] = b[0], [ce, cn] = b[1];
+      const dLon = ce - cw, dLat = cn - cs;
+      const padLon = Math.max(6, Math.min(18, dLon * 2.5));
+      const padLat = Math.max(4, Math.min(12, dLat * 2.5));
+      return fitMercator([cw - padLon, cs - padLat, ce + padLon, cn + padLat]);
+    }
+    return fitMercator(c.fit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [q.country]
-  );
+  }, [q.country, q.cid, q.kind]);
   const path = useMemo(() => d3.geoPath(proj), [proj]);
   const toSVG = useCallback(([lon, lat]) => proj([lon, lat]), [proj]);
 
@@ -350,6 +366,17 @@ function MapView({ q, answered, correct }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" aria-label="Karte">
       {/* Hintergrund – Ozean */}
       <rect x={0} y={0} width={W} height={H} fill="#9bbdd6" />
+
+      {/* Andere Länder als geographischer Hintergrund */}
+      {Object.entries(GEO).map(([id, geo]) => {
+        if (id === c.target || c.ctx.includes(id)) return null;
+        return (
+          <path key={`bg-${id}`}
+            d={path({ type: "Feature", geometry: geo.geometry })}
+            fill="#cfdde8" stroke="#a8c0cf" strokeWidth={0.4}
+          />
+        );
+      })}
 
       {/* Zielland – zuerst als deutlich sichtbare Fläche */}
       {targetFeat && (
@@ -431,6 +458,23 @@ function MapView({ q, answered, correct }) {
         );
       })()}
 
+      {/* ? Pulsing marker – vor Antwort */}
+      {q.kind === "country" && !answered && (() => {
+        const f = feat(q.cid);
+        if (!f) return null;
+        const ct = path.centroid(f);
+        if (!ct || isNaN(ct[0])) return null;
+        return (
+          <g>
+            <circle cx={ct[0]} cy={ct[1]} r={14} fill={accent} opacity={0.85}>
+              <animate attributeName="r" values="12;22;12" dur="1.5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.9;0.35;0.9" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            <text x={ct[0]} y={ct[1]+5} fill="white" fontSize={15} fontWeight="900" textAnchor="middle">?</text>
+          </g>
+        );
+      })()}
+
       {/* HIGHLIGHT: Land-Label */}
       {q.kind === "country" && answered && (() => {
         const f = feat(q.cid);
@@ -507,6 +551,18 @@ export default function App() {
     setCorrect(ok); setAnswered(true);
     if (ok) setScore(s => s + 1);
     setLog(l => [...l, { q: queue[idx], ok }]);
+    const pk = qKey(queue[idx]);
+    const prog = loadProg();
+    const prev = prog[pk] || { c: 0, t: 0 };
+    localStorage.setItem(PROG_KEY, JSON.stringify({ ...prog, [pk]: { c: prev.c + (ok ? 1 : 0), t: prev.t + 1 } }));
+  }
+
+  function repeatWrong() {
+    const wrongQs = shuffle(log.filter(l => !l.ok).map(l => l.q));
+    if (!wrongQs.length) return;
+    setAllQ(wrongQs); setQueue(wrongQs); setIdx(0); setScore(0); setLog([]);
+    prep(wrongQs[0], wrongQs);
+    setScreen("quiz");
   }
 
   function next() {
@@ -554,6 +610,14 @@ export default function App() {
                       <div className="font-bold" style={{ color: on ? c.color : "#334155" }}>{c.label}</div>
                       <div className="text-xs" style={{ color: on ? c.color : "#94a3b8", opacity: on ? 0.7 : 1 }}>
                         {on ? "Ausgewählt" : "Klicken zum Auswählen"}
+                        {(() => {
+                          const p = loadProg();
+                          const qs = buildQuestions([k], "alles");
+                          const tot = qs.reduce((s, q) => s + (p[qKey(q)]?.t || 0), 0);
+                          if (!tot) return null;
+                          const cor = qs.reduce((s, q) => s + (p[qKey(q)]?.c || 0), 0);
+                          return <span className="ml-1 font-semibold">· {Math.round(cor/tot*100)}% richtig</span>;
+                        })()}
                       </div>
                     </div>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0 transition-all"
@@ -675,6 +739,12 @@ export default function App() {
               Zum Menü
             </button>
           </div>
+          {wrong.length > 0 && (
+            <button onClick={repeatWrong}
+              className="mt-2 w-full py-3 rounded-2xl font-bold border-2 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 text-sm transition-colors">
+              {wrong.length} falsche Fragen wiederholen →
+            </button>
+          )}
         </div>
       </div>
     );
@@ -727,6 +797,7 @@ export default function App() {
 
           <div className="px-5 pt-4 pb-3">
             <h2 className="text-lg font-bold text-slate-900 leading-snug">{promptText}</h2>
+            {q.desc && <p className="text-sm text-slate-500 mt-1">💡 {q.desc}</p>}
           </div>
 
           {isMap && (
