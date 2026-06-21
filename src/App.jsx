@@ -588,6 +588,21 @@ export default function App() {
     setScreen("quiz");
   }
 
+  function startWeak() {
+    if (!sel.length) return;
+    const p = loadProg();
+    const qs = buildQuestions(sel, scope);
+    const weakQs = qs.filter(q => {
+      const pr = p[qKey(q)];
+      return pr && pr.t > 0 && (pr.c === 0 || pr.c / pr.t < 0.6);
+    });
+    if (!weakQs.length) return;
+    const sliced = len ? weakQs.slice(0, len) : weakQs;
+    setAllQ(weakQs); setQueue(sliced); setIdx(0); setScore(0); setLog([]);
+    prep(sliced[0], weakQs);
+    setScreen("quiz");
+  }
+
   function next() {
     const n = idx + 1;
     if (n >= queue.length) { setScreen("result"); return; }
@@ -714,6 +729,23 @@ export default function App() {
             style={{ background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", boxShadow: "0 4px 20px rgba(15,23,42,0.25)" }}>
             Quiz starten →
           </button>
+
+          {(() => {
+            if (!sel.length) return null;
+            const p = loadProg();
+            const qs = buildQuestions(sel, scope);
+            const weakCount = qs.filter(q => {
+              const pr = p[qKey(q)];
+              return pr && pr.t > 0 && (pr.c === 0 || pr.c / pr.t < 0.6);
+            }).length;
+            if (!weakCount) return null;
+            return (
+              <button onClick={startWeak}
+                className="mt-2 w-full py-3.5 rounded-2xl font-bold text-sm border-2 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors">
+                {weakCount} schwache Fragen gezielt üben →
+              </button>
+            );
+          })()}
 
           <p className="text-xs text-slate-400 text-center mt-4 leading-relaxed">
             Normal: Klick die richtige Antwort aus 4 Optionen. &nbsp;·&nbsp; Schwer: Tippe den Namen selbst ein.
