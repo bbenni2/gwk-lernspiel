@@ -86,7 +86,7 @@ const CONTENT = {
     {cat:"Stadt", a:"Denver",          m:[-104.99,39.74],hint:"Westen – Colorado"},
     {cat:"Großlandschaft", a:"Küstenebene",       m:[-78,35],   hint:"Ostküste – flach",     desc:"Flaches Küstenland an der Ostküste"},
     {cat:"Großlandschaft", a:"Zentrales Tiefland",m:[-92,40],   hint:"flach, fruchtbar",     desc:"Weites fruchtbares Flachland im Zentrum"},
-    {cat:"Großlandschaft", a:"Appalachen",        m:[-81,37],   hint:"Osten – Gebirge",      desc:"Altes Faltengebirge an der Ostküste"},
+    {cat:"Großlandschaft", a:"Appalachen",        m:[-81,37],   hint:"Osten – Gebirge",      desc:"Altes Faltengebirge, dicht bewaldet (Ostküste)"},
     {cat:"Großlandschaft", a:"Great Plains",      m:[-100,41],  hint:"Prärie, westlich",     desc:"Weite Grasland-Prärie westlich des Mississippi"},
     {cat:"Großlandschaft", a:"Rocky Mountains",   m:[-106,39],  hint:"Westen – Hochgebirge", acc:["rockies","felsengebirge"], desc:"Junges Hochgebirge im Westen (3000–4400 m)"},
     {cat:"See", a:"Great Lakes",     m:[-83,45],    hint:"5 Seen – Grenze Kanada", acc:["große seen","grosse seen"]},
@@ -94,6 +94,9 @@ const CONTENT = {
     {cat:"See", a:"Lake Tahoe",      m:[-120.0,39.1],hint:"Sierra Nevada"},
     {cat:"Ozean", a:"Pazifischer Ozean",  m:[-124,36.5], hint:"Westen", acc:["pazifik"]},
     {cat:"Ozean", a:"Atlantischer Ozean", m:[-71.5,34],  hint:"Osten", acc:["atlantik"]},
+    {cat:"Fluss", a:"Mississippi River", line:[[-95.2,47.2],[-91,44],[-90.2,38.6],[-90,35],[-91,32],[-89.3,29]], hint:"von N nach S", acc:["mississippi"]},
+    {cat:"Fluss", a:"Missouri River",    line:[[-111.5,45.9],[-101.4,47.5],[-96,41.2],[-94.6,39.1],[-90.1,38.8]], hint:"Rocky Mountains → Great Plains → St. Louis", acc:["missouri"]},
+    {cat:"Fluss", a:"Hudson River",      line:[[-73.6,43.3],[-73.7,42.7],[-73.9,41.7],[-74.0,40.7]], hint:"New York", acc:["hudson"]},
     {cat:"Nachbarstaat", a:"Kanada", cid:"124"},
     {cat:"Nachbarstaat", a:"Mexiko", cid:"484"},
   ]},
@@ -158,11 +161,12 @@ const CONTENT = {
 const FACTS = {
   china:    { Regierungschef:"Xi Jinping",
               Einwohner:"1,2 Mrd (homogen – Han-Chinesen + 56 weitere)",
-              Stärken:"2.-größte Volkswirtschaft – Autos, Solar, Batterien, Exportfokus",
+              Stärken:"2.-größte Volkswirtschaft – Autos, neue Technologie, Solar, Batterien, neue Exportmärkte",
               Hindernisse:"Verschuldung, Immobilienkrise, demografischer Wandel",
               Geopolitik:"Einfluss im Pazifik & in UNO/WTO, Taiwan, Machterhalt der KPCh",
-              Verbündete:"Nordkorea & Russland (strategische Partnerschaften)",
-              Feinde:"Taiwan & USA" },
+              Verbündete:"Meidung klass. Bündnisse → strateg. Partnerschaften: Nordkorea & Russland",
+              Feinde:"Taiwan & USA",
+              Schwemmebene:"Flaches Gelände, wo Flüsse Gesteinsmaterial aus dem Gebirge ablagern (anschwemmen)" },
   usa:      { Regierungschef:"Donald Trump",
               Einwohner:"330 Mio (sehr divers – Hispanics, Europäer)",
               Stärken:"größte Volkswirtschaft – Technologie, Software, Innovation, Finanzwesen",
@@ -209,11 +213,13 @@ const FACT_Q = {
   Geopolitik:"Geopolitische Interessen von",
   Verbündete:"Verbündete von",
   Feinde:"Feinde von",
+  Schwemmebene:"Was ist eine Schwemmebene?",
 };
 
 const FACT_ICON = {
   Regierungschef:"👤", Einwohner:"👥", Stärken:"📈",
   Hindernisse:"⚠️", Geopolitik:"🌐", Verbündete:"🤝", Feinde:"⚔️",
+  Schwemmebene:"🏔️",
 };
 
 // ─── Globaler Fakten-Antworten-Pool (Bug-Fix: MC-Optionen bei Einzelland) ─────
@@ -755,7 +761,10 @@ export default function App() {
 
   const isMap      = q.type === "map";
   const useMCMode  = needsMC(q, diff);
-  const promptText = isMap ? mapPrompt(q) : `${FACT_Q[q.sub]} ${country.label}?`;
+  const promptText = isMap ? mapPrompt(q)
+    : (FACT_Q[q.sub] || "").endsWith("?")
+      ? FACT_Q[q.sub]
+      : `${FACT_Q[q.sub]} ${country.label}?`;
   const progress   = (idx / queue.length) * 100;
 
   return (
