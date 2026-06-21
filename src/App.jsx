@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import * as d3 from "d3";
 import GEO from "./data/geo.json";
 
@@ -551,6 +551,14 @@ export default function App() {
   const [opts,     setOpts]     = useState([]);
   const [allQ,     setAllQ]     = useState([]);
   const [log,      setLog]      = useState([]);
+
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === "Enter" && answered && screen === "quiz") next();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [answered, screen]);
 
   function prep(q, pool) {
     setAnswered(false); setCorrect(false); setInput(""); setPicked(null);
