@@ -13,7 +13,7 @@ const NAMES = {
   "112":"Belarus","498":"Moldau","268":"Georgien","51":"Armenien","31":"Aserbaidschan",
   "860":"Usbekistan","795":"Turkmenistan","682":"Saudi-Arabien","400":"Jordanien","368":"Irak",
   "414":"Kuwait","634":"Katar","784":"Ver. Arab. Emirate","512":"Oman","887":"Jemen",
-  "50":"Bangladesch","144":"Sri Lanka"
+  "50":"Bangladesch","144":"Sri Lanka","410":"Südkorea"
 };
 void NAMES; // referenced in result screen indirectly
 
@@ -788,10 +788,39 @@ export default function App() {
         </div>
 
         {/* Fortschrittsbalken */}
-        <div className="h-1.5 bg-slate-200 rounded-full mb-4 overflow-hidden">
+        <div className="h-1.5 bg-slate-200 rounded-full mb-2 overflow-hidden">
           <div className="h-full rounded-full transition-all duration-500"
             style={{ width: `${progress}%`, background: country.color }}/>
         </div>
+
+        {/* Lernstand Kontext */}
+        {(() => {
+          const p = loadProg();
+          const qs = buildQuestions([q.country], "alles");
+          const cats = {};
+          qs.forEach(item => {
+            const cat = item.type === "fact" ? "Fakten" : item.cat;
+            if (!cats[cat]) cats[cat] = { c: 0, t: 0 };
+            const pr = p[qKey(item)] || { c: 0, t: 0 };
+            cats[cat].c += pr.c;
+            cats[cat].t += pr.t;
+          });
+          const entries = Object.entries(cats).filter(([, v]) => v.t > 0);
+          if (!entries.length) return <div className="mb-3"/>;
+          return (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {entries.map(([cat, { c, t }]) => {
+                const pct = Math.round(c / t * 100);
+                const col = pct >= 70 ? "#16a34a" : pct >= 40 ? "#d97706" : "#dc2626";
+                return (
+                  <span key={cat} className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
+                    {cat} <span className="font-bold" style={{ color: col }}>{pct}%</span>
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Frage-Karte */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-3">
