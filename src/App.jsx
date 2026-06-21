@@ -246,12 +246,29 @@ const norm = s =>
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/ß/g, "ss").replace(/[^a-z0-9]/g, "");
 
+function editDist(a, b) {
+  if (Math.abs(a.length - b.length) > 4) return 99;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => j === 0 ? i : 0));
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+
 function matches(input, item) {
   const n = norm(input);
   if (!n) return false;
   const cands = [item.a, ...(item.acc || [])].map(norm);
   if (cands.includes(n)) return true;
-  return cands.some(c => c.length >= 4 && (c.includes(n) || n.includes(c)) && Math.abs(c.length - n.length) <= 4);
+  if (n.length < 3) return false;
+  return cands.some(c => {
+    if (c.length < 4) return false;
+    const maxErr = c.length <= 5 ? 1 : c.length <= 10 ? 2 : 3;
+    return n.length >= c.length - maxErr && editDist(c, n) <= maxErr;
+  });
 }
 
 function fitMercator([w, s, e, n]) {
