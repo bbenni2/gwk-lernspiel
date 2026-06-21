@@ -251,8 +251,11 @@ function matches(input, item) {
   return cands.some(c => c.length >= 4 && (c.includes(n) || n.includes(c)) && Math.abs(c.length - n.length) <= 4);
 }
 
-function boxGeo([w, s, e, n]) {
-  return { type: "Polygon", coordinates: [[[w,s],[e,s],[e,n],[w,n],[w,s]]] };
+function fitMercator([w, s, e, n]) {
+  const r = d => d * Math.PI / 180;
+  const my = lat => Math.log(Math.tan(Math.PI / 4 + r(lat) / 2));
+  const scale = Math.min((W - 2*PAD) / r(e - w), (H - 2*PAD) / (my(n) - my(s)));
+  return d3.geoMercator().scale(scale).center([(w+e)/2, (s+n)/2]).translate([W/2, H/2]);
 }
 
 const CAT_PROMPT = {
@@ -331,7 +334,7 @@ function MapView({ q, answered, correct }) {
   const okCol = answered ? (correct ? "#16a34a" : "#dc2626") : accent;
 
   const proj = useMemo(
-    () => d3.geoMercator().fitExtent([[PAD, PAD], [W - PAD, H - PAD]], boxGeo(c.fit)),
+    () => fitMercator(c.fit),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [q.country]
   );
