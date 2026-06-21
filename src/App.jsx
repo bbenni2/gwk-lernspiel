@@ -599,6 +599,15 @@ export default function App() {
 
   // ── MENÜ ──────────────────────────────────────────────────────────────────
   if (screen === "menu") {
+    const _prog = loadProg();
+    const progStats = Object.fromEntries(Object.keys(COUNTRIES).map(k => {
+      const qs = buildQuestions([k], "alles");
+      const mastered = qs.filter(q => (_prog[qKey(q)]?.c || 0) >= 1).length;
+      return [k, { total: qs.length, mastered }];
+    }));
+    const totalAll  = Object.values(progStats).reduce((s, v) => s + v.total, 0);
+    const masteredAll = Object.values(progStats).reduce((s, v) => s + v.mastered, 0);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="max-w-2xl mx-auto px-4 py-8">
@@ -613,6 +622,24 @@ export default function App() {
             </h1>
             <p className="text-slate-500 text-sm">Lerne Karten, Städte, Fakten und Grenzen</p>
           </div>
+
+          {/* Gesamtfortschritt */}
+          {masteredAll > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Gesamtfortschritt</div>
+                <span className="text-sm font-black text-slate-700">{masteredAll}/{totalAll} Fragen</span>
+              </div>
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                <div className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                  style={{ width: `${Math.round(masteredAll / totalAll * 100)}%` }}/>
+              </div>
+              <div className="text-xs text-slate-500">
+                {Math.round(masteredAll / totalAll * 100)}% beherrscht
+                <span className="text-slate-400 ml-1">· {totalAll - masteredAll} noch zu lernen</span>
+              </div>
+            </div>
+          )}
 
           {/* Länder-Auswahl */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-4">
@@ -629,18 +656,14 @@ export default function App() {
                       : { borderColor: "#e2e8f0", background: "white", color: "#64748b" }}
                   >
                     <span className="text-2xl leading-none">{c.flag}</span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="font-bold" style={{ color: on ? c.color : "#334155" }}>{c.label}</div>
-                      <div className="text-xs" style={{ color: on ? c.color : "#94a3b8", opacity: on ? 0.7 : 1 }}>
-                        {on ? "Ausgewählt" : "Klicken zum Auswählen"}
-                        {(() => {
-                          const p = loadProg();
-                          const qs = buildQuestions([k], "alles");
-                          const tot = qs.reduce((s, q) => s + (p[qKey(q)]?.t || 0), 0);
-                          if (!tot) return null;
-                          const cor = qs.reduce((s, q) => s + (p[qKey(q)]?.c || 0), 0);
-                          return <span className="ml-1 font-semibold">· {Math.round(cor/tot*100)}% richtig</span>;
-                        })()}
+                      <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: on ? `${c.color}22` : "#f1f5f9" }}>
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.round(progStats[k].mastered / progStats[k].total * 100)}%`, background: on ? c.color : "#94a3b8" }}/>
+                      </div>
+                      <div className="text-xs mt-0.5" style={{ color: on ? c.color : "#94a3b8" }}>
+                        {progStats[k].mastered}/{progStats[k].total} beherrscht{on ? " · Ausgewählt" : ""}
                       </div>
                     </div>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0 transition-all"
